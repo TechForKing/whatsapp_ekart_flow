@@ -63,7 +63,10 @@ function createClient() {
     authStrategy: new LocalAuth({
       dataPath: process.env.WWEBJS_DATA_PATH || undefined,
     }),
+    authTimeoutMs: 120000, // 2 minutes (prevents 30s timeout on slow cloud boots)
     puppeteer: puppeteerOpts,
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
   });
 
   return client;
