@@ -9,39 +9,54 @@ const logger = require("./logger");
  * and survives server restarts without re-scanning the QR code.
  */
 function createClient() {
-  const puppeteerOpts = {
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--no-first-run",
-      "--no-zygote",
-      "--single-process",
-      "--disable-extensions",
-      "--disable-default-apps",
-      "--disable-sync",
-      "--disable-translate",
-      "--disable-background-networking",
-      "--disable-background-timer-throttling",
-      "--disable-backgrounding-occluded-windows",
-      "--disable-breakpad",
-      "--disable-component-extensions-with-background-pages",
-      "--disable-features=TranslateUI,BlinkGenPropertyTrees",
-      "--disable-ipc-flooding-protection",
-      "--disable-renderer-backgrounding",
-      "--enable-features=NetworkService,NetworkServiceInProcess",
-      "--force-color-profile=srgb",
-      "--metrics-recording-only",
-      "--mute-audio",
-      "--js-flags=--max-old-space-size=128",
-    ],
-  };
+  let puppeteerOpts;
 
-  // If a custom Chrome binary path is specified in environment
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    puppeteerOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  // ── Remote Browser (Browserless / Remote Chrome via WebSocket) ────
+  if (process.env.BROWSERLESS_WS_URL) {
+    logger.info(`[PUPPETEER] Connecting to remote browser: ${process.env.BROWSERLESS_WS_URL}`);
+    puppeteerOpts = {
+      browserWSEndpoint: process.env.BROWSERLESS_WS_URL,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+      ],
+    };
+  } else {
+    // ── Local Chromium with low-memory profile ──────────────────────
+    logger.info("[PUPPETEER] Launching local Chromium with low-memory profile");
+    puppeteerOpts = {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process",
+        "--disable-extensions",
+        "--disable-default-apps",
+        "--disable-sync",
+        "--disable-translate",
+        "--disable-background-networking",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-breakpad",
+        "--disable-component-extensions-with-background-pages",
+        "--disable-features=TranslateUI,BlinkGenPropertyTrees",
+        "--disable-ipc-flooding-protection",
+        "--disable-renderer-backgrounding",
+        "--enable-features=NetworkService,NetworkServiceInProcess",
+        "--force-color-profile=srgb",
+        "--metrics-recording-only",
+        "--mute-audio",
+        "--js-flags=--max-old-space-size=128",
+      ],
+    };
+
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      puppeteerOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
   }
 
   const client = new Client({
