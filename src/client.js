@@ -5,6 +5,8 @@ const logger = require("./logger");
 
 /**
  * Create and configure the WhatsApp client.
+ * Uses LocalAuth strategy so the session is stored in .wwebjs_auth/
+ * and survives server restarts without re-scanning the QR code.
  */
 function createClient() {
   let puppeteerOpts;
@@ -36,30 +38,53 @@ function createClient() {
     }
   }
 
-  const client = new Client({
+  const clientOptions = {
     authStrategy: new LocalAuth({
       dataPath: process.env.WWEBJS_DATA_PATH || undefined,
     }),
-    authTimeoutMs: 120000, // 2 minutes
+    authTimeoutMs: 120000,
     puppeteer: puppeteerOpts,
     userAgent:
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-  });
+  };
+
+  // Optional: Link using 8-character Pairing Code instead of scanning QR
+  if (process.env.PAIR_PHONE_NUMBER) {
+    const cleanPhone = process.env.PAIR_PHONE_NUMBER.replace(/\D/g, "");
+    logger.info(`[PAIRING] Phone number pairing enabled for: ${cleanPhone}`);
+    clientOptions.pairWithPhoneNumber = {
+      phoneNumber: cleanPhone,
+      showNotification: true,
+    };
+  }
+
+  const client = new Client(clientOptions);
 
   return client;
 }
 
 let currentQR = null;
+let currentCode = null;
 let currentStatus = "CONNECTING";
 
 function getStatus() {
-  return { status: currentStatus, qr: currentQR };
+  return { status: currentStatus, qr: currentQR, code: currentCode };
 }
 
 /**
  * Register all event handlers on the client.
  */
 function registerEvents(client) {
+  // ── Pairing Code (Link with Phone Number) ────────────────────────
+  client.on("code", (code) => {
+    currentCode = code;
+    currentStatus = "CODE_READY";
+    logger.info("==================== PAIRING CODE ====================");
+    logger.info(`👉 YOUR PAIRING CODE: ${code}`);
+    logger.info("Enter this code in WhatsApp: Linked Devices -> Link with phone number");
+    logger.info("======================================================");
+  });
+
   // ── QR Code ──────────────────────────────────────────────────────
   client.on("qr", (qr) => {
     currentQR = qr;
