@@ -5,8 +5,6 @@ const logger = require("./logger");
 
 /**
  * Create and configure the WhatsApp client.
- * Uses LocalAuth strategy so the session is stored in .wwebjs_auth/
- * and survives server restarts without re-scanning the QR code.
  */
 function createClient() {
   let puppeteerOpts;
@@ -16,41 +14,20 @@ function createClient() {
     logger.info(`[PUPPETEER] Connecting to remote browser: ${process.env.BROWSERLESS_WS_URL}`);
     puppeteerOpts = {
       browserWSEndpoint: process.env.BROWSERLESS_WS_URL,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-      ],
     };
   } else {
-    // ── Local Chromium with low-memory profile ──────────────────────
-    logger.info("[PUPPETEER] Launching local Chromium with low-memory profile");
+    // ── Local Chromium with standard stable flags ───────────────────
+    logger.info("[PUPPETEER] Launching local Chromium with clean flags");
     puppeteerOpts = {
       headless: true,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
-        "--disable-gpu",
+        "--disable-accelerated-2d-canvas",
         "--no-first-run",
         "--no-zygote",
-        "--single-process",
-        "--disable-extensions",
-        "--disable-default-apps",
-        "--disable-sync",
-        "--disable-translate",
-        "--disable-background-networking",
-        "--disable-background-timer-throttling",
-        "--disable-backgrounding-occluded-windows",
-        "--disable-breakpad",
-        "--disable-component-extensions-with-background-pages",
-        "--disable-features=TranslateUI,BlinkGenPropertyTrees",
-        "--disable-ipc-flooding-protection",
-        "--disable-renderer-backgrounding",
-        "--enable-features=NetworkService,NetworkServiceInProcess",
-        "--force-color-profile=srgb",
-        "--metrics-recording-only",
-        "--mute-audio",
-        "--js-flags=--max-old-space-size=128",
+        "--disable-gpu",
       ],
     };
 
@@ -63,7 +40,7 @@ function createClient() {
     authStrategy: new LocalAuth({
       dataPath: process.env.WWEBJS_DATA_PATH || undefined,
     }),
-    authTimeoutMs: 120000, // 2 minutes (prevents 30s timeout on slow cloud boots)
+    authTimeoutMs: 120000, // 2 minutes
     puppeteer: puppeteerOpts,
     userAgent:
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
@@ -99,6 +76,10 @@ function registerEvents(client) {
     currentQR = null;
     currentStatus = "AUTHENTICATED";
     logger.info("Authentication successful! Session saved locally.");
+  });
+
+  client.on("change_state", (state) => {
+    logger.info(`[STATE] Connection state changed to: ${state}`);
   });
 
   client.on("auth_failure", (msg) => {
