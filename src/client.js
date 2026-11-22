@@ -9,33 +9,23 @@ const logger = require("./logger");
  * and survives server restarts without re-scanning the QR code.
  */
 function createClient() {
-  let puppeteerOpts;
+  logger.info("[PUPPETEER] Launching local Chromium with standard stable flags");
 
-  // ── Remote Browser (Browserless / Remote Chrome via WebSocket) ────
-  if (process.env.BROWSERLESS_WS_URL) {
-    logger.info(`[PUPPETEER] Connecting to remote browser: ${process.env.BROWSERLESS_WS_URL}`);
-    puppeteerOpts = {
-      browserWSEndpoint: process.env.BROWSERLESS_WS_URL,
-    };
-  } else {
-    // ── Local Chromium with standard stable flags ───────────────────
-    logger.info("[PUPPETEER] Launching local Chromium with clean flags");
-    puppeteerOpts = {
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--disable-gpu",
-      ],
-    };
+  const puppeteerOpts = {
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--disable-gpu",
+    ],
+  };
 
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-      puppeteerOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    }
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    puppeteerOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
   }
 
   const clientOptions = {
