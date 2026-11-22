@@ -1,0 +1,48 @@
+{
+  "name": "address-cod-check",
+  "steps": [
+    {
+      "input": "{{message_text}}",
+      "match": "\\b[1-9][0-9]{5}\\b",
+      "condition": {
+        "true": {
+          "input": "{{message_text}}",
+          "engine": "groq",
+          "prompt": "Does this message contain a delivery/shipping address including a 6-digit Indian pincode?\n- If it is NOT an address, respond with: {\"is_address\": false}\n- If it IS an address but pincode is missing, respond with: {\"is_address\": true, \"pincode_available\": false}\n- If both address and 6-digit pincode are present, respond with: {\"is_address\": true, \"pincode_available\": true, \"pincode\": \"<6-digit pincode>\"}\n\nMessage:\n{{message_text}}"
+        },
+        "false": {
+          "skip": true
+        }
+      }
+    },
+    {
+      "input": "{{is_address}}",
+      "condition": {
+        "true": {
+          "input": "{{pincode_available}}",
+          "condition": {
+            "true": {
+              "input": "{{pincode}}",
+              "engine": "ekart",
+              "worker": "isCodAvailable",
+              "condition": {
+                "true": {
+                  "react": "✅"
+                },
+                "false": {
+                  "react": "❌"
+                }
+              }
+            },
+            "false": {
+              "reply": "Please provide the address with Pincode."
+            }
+          }
+        },
+        "false": {
+          "skip": true
+        }
+      }
+    }
+  ]
+}
